@@ -1,0 +1,680 @@
+:root {
+  --ink: #f6f1e9;
+  --muted: rgba(246, 241, 233, 0.6);
+  --faint: rgba(246, 241, 233, 0.14);
+  --panel: rgba(22, 17, 30, 0.9);
+  --panel-line: rgba(255, 255, 255, 0.08);
+  --accent: #8b7bff;
+  --accent-ink: #ffffff;
+  --bad: #ff6b7d;
+  --shop-width: 320px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  font-family: "Rubik", "Segoe UI", system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(70% 70% at 40% 42%, #d9975a 0%, #a8653a 45%, #4a2a1f 100%);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+#app {
+  display: flex;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------ сцена */
+
+#stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.topbar {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.title b {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(139, 123, 255, 0.22);
+  color: #cfc7ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge .short {
+  display: none;
+}
+
+/* Сколько мебели из коллекции стоит в комнате */
+.count-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.count-pill svg {
+  width: 22px;
+  height: 22px;
+  color: #cfc7ff;
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+.hint.gone {
+  opacity: 0;
+  transform: translate(-50%, 10px);
+}
+
+.toolbar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  will-change: transform;
+}
+
+.toolbar[hidden] {
+  display: none;
+}
+
+.toolbar-name {
+  padding: 0 8px 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toolbar button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.toolbar svg {
+  width: 19px;
+  height: 19px;
+}
+
+#remove {
+  color: #ffb4bd;
+}
+
+#deselect {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 74px;
+  transform: translate(-50%, -8px);
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: rgba(30, 14, 20, 0.92);
+  color: #ffd3d8;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  background: rgba(20, 14, 18, 0.55);
+  transition: opacity 0.5s;
+}
+
+.loading.gone {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading.error {
+  color: #ffd3d8;
+}
+
+/* ------------------------------------------------------------ магазин */
+
+#shop {
+  display: flex;
+  flex-direction: column;
+  width: var(--shop-width);
+  flex: none;
+  background: var(--panel);
+  border-left: 1px solid var(--panel-line);
+}
+
+.shop-head {
+  padding: 18px 18px 8px;
+}
+
+.shop-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.shop-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.shop-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 14px 12px;
+}
+
+/* Вкладки коллекции: мебель, на стены, обои, пол */
+.shop-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 2px 14px 10px;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.shop-tabs[hidden] {
+  display: none;
+}
+
+.shop-tabs button {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+}
+
+.shop-tabs button b {
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+.shop-tabs button:hover {
+  color: var(--ink);
+}
+
+.shop-tabs button.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.shop-list .group[hidden] {
+  display: none;
+}
+
+.shop-list .group {
+  padding-top: 2px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Карточка предмета. --rc - цвет редкости из catalog.json */
+.card {
+  --rc: rgba(255, 255, 255, 0.4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 8px 8px 9px;
+  border: 1px solid color-mix(in srgb, var(--rc) 30%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--rc) 14%, transparent), transparent 60%),
+    rgba(255, 255, 255, 0.04);
+  text-align: left;
+  transition: background 0.2s, transform 0.15s, opacity 0.2s;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.card:active {
+  transform: scale(0.97);
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--rc) 26%, transparent), transparent 70%);
+}
+
+/* Сколько штук ещё можно поставить */
+.card .count {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(12, 9, 18, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.card .count:empty,
+.card .count[hidden] {
+  display: none;
+}
+
+/* Всё такое уже стоит в комнате */
+.card.used {
+  opacity: 0.5;
+}
+
+/* Выбранные обои или пол */
+.card.chosen {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 18px rgba(139, 123, 255, 0.28);
+}
+
+.card.chosen .count {
+  background: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card.plain .rarity {
+  color: var(--muted);
+}
+
+.card.used .count {
+  background: rgba(139, 123, 255, 0.35);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card .name {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.card .meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+}
+
+.card .rarity {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rc);
+}
+
+.card .size {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Коллекция пуста */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 36px 10px;
+  text-align: center;
+}
+
+.empty svg {
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.35));
+}
+
+.empty b {
+  margin-top: 6px;
+  font-size: 17px;
+}
+
+.empty span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.shop-foot {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px 16px;
+  border-top: 1px solid var(--panel-line);
+}
+
+.shop-foot button {
+  flex: 1;
+}
+
+.primary,
+.ghost {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.primary {
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.primary:hover {
+  filter: brightness(1.1);
+}
+
+.ghost {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.small {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+/* ------------------------------------------------------------ окно «Готово» */
+
+dialog {
+  width: min(520px, calc(100vw - 24px));
+  padding: 22px;
+  border: 1px solid var(--panel-line);
+  border-radius: 20px;
+  background: #1a1422;
+  color: var(--ink);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+dialog::backdrop {
+  background: rgba(10, 6, 12, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+dialog h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+dialog p {
+  margin: 14px 0 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+dialog .code,
+dialog input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font: 600 14px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  word-break: break-all;
+  user-select: all;
+}
+
+dialog .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+dialog .row.end {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.muted {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------ телефон */
+
+@media (max-width: 760px) {
+  #app {
+    flex-direction: column;
+  }
+
+  #shop {
+    width: auto;
+    height: 42%;
+    border-left: 0;
+    border-top: 1px solid var(--panel-line);
+  }
+
+  .shop-head {
+    display: none;
+  }
+
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .card .name {
+    font-size: 12px;
+  }
+
+  .shop-tabs {
+    margin-top: 10px;
+  }
+
+  .hint {
+    white-space: normal;
+    width: calc(100% - 32px);
+    font-size: 13px;
+  }
+
+  .title b {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .badge .long {
+    display: none;
+  }
+
+  .badge .short {
+    display: inline;
+  }
+}
+
+/* ------------------------------------------------- режим каталога: шаблоны */
+
+.catalog-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 18px 10px;
+}
+
+.catalog-tools[hidden] {
+  display: none;
+}
+
+.catalog-tools label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 120px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.catalog-tools select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.catalog-tools option {
+  background: #241d2e;
+}
+
+/* Мебель лавок NPC в каталоге: подпись - чья она */
+.card.npc .rarity {
+  color: #ffc87a;
+}
