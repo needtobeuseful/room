@@ -1,10 +1,13 @@
 // Редактор комнаты: коллекция мебели зрителя и её расстановка.
 //
-// Ссылку на редактор присылает бот по команде !комната. После # в ней:
-//   n - ник зрителя, i - код его коллекции, r - код его комнаты.
-// Всё после # браузер никуда не отправляет - страница читает это сама.
+// Ссылку на редактор присылает бот по команде !комната. После # в ней -
+// один код (codec.js, encodeLink): ник зрителя, мебель из его коллекции,
+// которой нет в комнате, и сама комната. Расставленное - тоже его: сайт
+// прибавляет его к коллекции сам. Старые ссылки (#n=ник&i=коллекция&r=
+// комната) тоже открываются. Всё после # браузер никуда не отправляет -
+// страница читает это сама.
 //
-// Без i редактор открывается в режиме каталога: вся мебель игры, без
+// Без коллекции редактор открывается в режиме каталога: вся мебель игры, без
 // ограничений по количеству. Так собираются особые комнаты для мини-игры -
 // например, лавки NPC: их готовые шаблоны (catalog.json → templates)
 // выбираются вверху.
@@ -21,7 +24,7 @@ import { addLights, buildRoom, fitCamera, poseFor, springScale, themeOf } from '
 import { FINISHES, isFinish } from './finish.js';
 import { buildModel } from './models.js';
 import { Layout, footprint } from './layout.js';
-import { decodeInventory, decodeRoom, encodeRoom, MAX_ITEMS } from './codec.js';
+import { decodeInventory, decodeRoom, encodeLink, encodeRoom, LINK_ROOM, MAX_ITEMS, readLink } from './codec.js';
 import { makeThumbnails } from './thumbs.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -53,20 +56,31 @@ const typeByCode = new Map(catalog.items.map((type) => [type.code, type]));
 
 // ---------------------------------------------------------------- что пришло в ссылке
 
-const params = new URLSearchParams(location.hash.slice(1));
-const playerName = (params.get('n') || '').trim().slice(0, 40);
+const incoming = readLink(location.hash);
+const params = incoming.params || new URLSearchParams();
+const linked = incoming.link && incoming.link.page === LINK_ROOM ? incoming.link : null;
+const playerName = incoming.name;
 const inventoryText = params.get('i');
-const catalogMode = inventoryText === null;
+const catalogMode = !incoming.link && !incoming.error && inventoryText === null;
 let owned = new Map();         // номер предмета -> сколько штук в коллекции
+const allOwned = new Map();    // то же вместе с мебелью, которой сайт ещё не знает, - для ссылки
 let unknownOwned = 0;          // мебель, которой этот сайт ещё не знает
 let brokenLink = '';
 
-if (!catalogMode) {
+function own(code, count) {
+  allOwned.set(code, (allOwned.get(code) || 0) + count);
+  if (typeByCode.has(code)) owned.set(code, (owned.get(code) || 0) + count);
+  else unknownOwned += count;
+}
+
+if (incoming.error || (incoming.link && !linked)) {
+  brokenLink = `Ссылка повреждена (${incoming.error || 'это ссылка на другую страницу'}) - попроси у бота новую: !комната`;
+} else if (linked) {
+  for (const [code, count] of linked.inventory) own(code, count);
+  for (const p of linked.room) own(p.code, 1);
+} else if (!catalogMode) {
   try {
-    for (const [code, count] of decodeInventory(inventoryText)) {
-      if (typeByCode.has(code)) owned.set(code, count);
-      else unknownOwned += count;
-    }
+    for (const [code, count] of decodeInventory(inventoryText)) own(code, count);
   } catch (error) {
     brokenLink = `Ссылка повреждена (${error.message}) - попроси у бота новую: !комната`;
   }
@@ -433,12 +447,15 @@ function placements() {
 
 const currentCode = () => encodeRoom(placements());
 
+// Что записать после # - та же ссылка одним кодом, что присылает бот: в
+// коллекции - то, что сейчас не стоит в комнате. В режиме каталога - только
+// комната (#r=код)
 function stateHash() {
-  const parts = [];
-  if (playerName) parts.push(`n=${encodeURIComponent(playerName)}`);
-  if (!catalogMode) parts.push(`i=${inventoryText}`);
-  parts.push(`r=${currentCode()}`);
-  return parts.join('&');
+  if (catalogMode) return `r=${currentCode()}`;
+  const room = placements();
+  const spare = new Map(allOwned);
+  for (const p of room) spare.set(p.code, (spare.get(p.code) || 0) - 1);
+  return encodeLink(LINK_ROOM, playerName, { inventory: spare, room });
 }
 
 function saveState() {
@@ -446,15 +463,17 @@ function saveState() {
 }
 
 function loadState() {
+  let placementsList = linked ? linked.room : [];
   const code = params.get('r');
-  if (!code) return;
-  let placementsList;
-  try {
-    placementsList = decodeRoom(code);
-  } catch (error) {
-    toast(`Комната из ссылки не открылась: ${error.message}`, 4000);
-    return;
+  if (code) {
+    try {
+      placementsList = decodeRoom(code);
+    } catch (error) {
+      toast(`Комната из ссылки не открылась: ${error.message}`, 4000);
+      return;
+    }
   }
+  if (!placementsList.length) return;
   let skipped = 0;
   placementsList.forEach((p, index) => {
     const type = typeByCode.get(p.code);
